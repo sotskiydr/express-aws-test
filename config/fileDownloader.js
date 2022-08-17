@@ -1,20 +1,8 @@
 const multer = require('multer');
 const cryptoRandomString = require("crypto-random-string");
-const { S3Client } = require('@aws-sdk/client-s3')
+const { S3Client, DeleteObjectCommand} = require('@aws-sdk/client-s3')
 const multerS3 = require('multer-s3')
-const path = require('path');
 const {Files} = require('../models')
-
-// const videoStorage = multer.diskStorage({
-//     destination(req, file, cb) {
-//         cb(null, path.resolve('./files/videos'))
-//     },
-//     filename: (req, file, cb) => {
-//         const extension = /\.([a-z0-9]+)$/i.exec(file.originalname)[1];
-//         const fileName = `${cryptoRandomString({ length: 30 })}.${extension}`;
-//         cb(null, fileName);
-//     },
-// });
 
 const bucketName = process.env.AWS_BUCKET_NAME;
 const bucketRegion = process.env.AWS_BUCKET_REGION;
@@ -42,19 +30,6 @@ const upload = multerS3({
     }
 })
 
-const videoStorage = multer.memoryStorage();
-
-const pictureStorage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, path.resolve('./files/pictures'));
-    },
-    filename: (req, file, cb) => {
-        const extension = /\.([a-z0-9]+)$/i.exec(file.originalname)[1];
-        const fileName = `${cryptoRandomString({ length: 30 })}.${extension}`;
-        cb(null, fileName);
-    },
-})
-
 const fileVideoFilter = async (req, file, cb) => {
     const videoWithProvidedName = await Files.findOne({
         where: { name: file.originalname },
@@ -78,7 +53,21 @@ const fileVideoFilter = async (req, file, cb) => {
     cb(null, true);
 };
 
-const fileImageFilter = (req, file, cb) => {
+const fileImageFilter = async (req, file, cb) => {
+    const pictureWithProvidedName = await Files.findOne({
+        where: { name: file.originalname },
+    });
+    if (pictureWithProvidedName) {
+        cb(
+            new Error(
+                JSON.stringify({
+                    message: 'A file with the same name was already uploaded',
+                    name: file.originalname,
+                })
+            )
+        );
+        return;
+    }
     if (!/^image\//.test(file.mimetype)) {
         cb(new Error('Wrong file type'));
         return;
@@ -87,19 +76,19 @@ const fileImageFilter = (req, file, cb) => {
     cb(null, true);
 }
 
+async function deleteFile(params) {
+    return await s3.send(new DeleteObjectCommand(params))
+}
 
 module.exports = {
     fileVideoUploader: multer({
-        storage: videoStorage,
+        storage: upload,
         limits: { fileSize: 60 * 1024 * 1024 },
         fileFilter: fileVideoFilter
     }),
     fileImageUploader: multer({
-        storage: pictureStorage, fileImageFilter
-    }),
-    s3Uploader: multer({
         storage: upload,
-        limits: { fileSize: 60 * 1024 * 1024 },
-        fileFilter: fileVideoFilter
-    })
+        fileFilter: fileImageFilter
+    }),
+    deleteFile
 }

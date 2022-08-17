@@ -18,7 +18,14 @@ module.exports = (sequelize, DataTypes) => {
           allowNull: false,
           unique: true
         },
-
+        file_key: {
+          type: DataTypes.STRING(1024),
+          allowNull: false
+        },
+        s3_bucket: {
+          type: DataTypes.STRING(1024),
+          allowNull: false
+        },
         createdAt: {
           allowNull: false,
           type: DataTypes.DATE

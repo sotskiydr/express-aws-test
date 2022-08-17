@@ -17,7 +17,14 @@ module.exports = {
         allowNull: false,
         unique: true
       },
-
+      file_key: {
+        type: Sequelize.STRING(1024),
+        allowNull: false
+      },
+      s3_bucket: {
+        type: Sequelize.STRING(1024),
+        allowNull: false
+      },
       createdAt: {
         allowNull: false,
         type: Sequelize.DATE
