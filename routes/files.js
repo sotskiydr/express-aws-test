@@ -3,7 +3,7 @@ const path = require("path");
 const {Op} = require("sequelize");
 const router = require('express').Router();
 const axios = require('axios');
-const {fileVideoUploader, fileImageFilter} = require('../config/fileDownloader')
+const {fileVideoUploader, fileImageUploader, s3Uploader} = require('../config/fileDownloader')
 const {Files} = require('../models')
 const {s3Uploadv2} = require('../config/s3-config')
 
@@ -23,9 +23,7 @@ router.get('/', async (req, res, next) => {
 
 })
 
-router.post('/video', fileVideoUploader.single('video'), async (req, res) => {
-    const file = await s3Uploadv2(req.file, 'video');
-    console.log(file)
+router.post('/video', s3Uploader.single('video'), async (req, res) => {
     const video = await Files.create({
         name: req.file.originalname,
         path: `/files/videos/${req.file.filename}`
@@ -34,7 +32,7 @@ router.post('/video', fileVideoUploader.single('video'), async (req, res) => {
     res.json(video)
 })
 
-router.post('/picture', fileImageFilter.single('picture'), async (req, res) => {
+router.post('/picture', fileImageUploader.single('picture'), async (req, res) => {
     const picture = await Files.create({
         name: req.file.originalname,
         path: `/files/pictures/${req.file.filename}`

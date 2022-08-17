@@ -41,5 +41,8 @@
     "sequelize": "^5.19.6",
     "sequelize-cli": "^5.5.1",
     "yeoman-generator": "^5.7.0"
+  },
+  "devDependencies": {
+    "@aws-sdk/client-s3": "^3.150.0"
   }
 }

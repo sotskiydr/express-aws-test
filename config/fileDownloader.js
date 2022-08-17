@@ -1,5 +1,7 @@
 const multer = require('multer');
 const cryptoRandomString = require("crypto-random-string");
+const { S3Client } = require('@aws-sdk/client-s3')
+const multerS3 = require('multer-s3')
 const path = require('path');
 const {Files} = require('../models')
 
@@ -13,6 +15,32 @@ const {Files} = require('../models')
 //         cb(null, fileName);
 //     },
 // });
+
+const bucketName = process.env.AWS_BUCKET_NAME;
+const bucketRegion = process.env.AWS_BUCKET_REGION;
+const bucketAccessKey = process.env.AWS_BUCKET_ACCESS_KEY;
+const bucketSecretKey = process.env.AWS_SECRET_KEY;
+
+const s3 = new S3Client({
+    region: bucketRegion,
+    credentials: {
+        accessKeyId: bucketAccessKey,
+        secretAccessKey: bucketSecretKey
+    }
+})
+
+const upload = multerS3({
+    s3: s3,
+    bucket: bucketName,
+    metadata: function (req, file, cb) {
+        cb(null, {fieldName: file.fieldname});
+    },
+    key: function (req, file, cb) {
+        const extension = /\.([a-z0-9]+)$/i.exec(file.originalname)[1];
+        const fileName = `${cryptoRandomString({ length: 30 })}.${extension}`;
+        cb(null, fileName);
+    }
+})
 
 const videoStorage = multer.memoryStorage();
 
@@ -66,7 +94,12 @@ module.exports = {
         limits: { fileSize: 60 * 1024 * 1024 },
         fileFilter: fileVideoFilter
     }),
-    fileImageFilter: multer({
+    fileImageUploader: multer({
         storage: pictureStorage, fileImageFilter
+    }),
+    s3Uploader: multer({
+        storage: upload,
+        limits: { fileSize: 60 * 1024 * 1024 },
+        fileFilter: fileVideoFilter
     })
 }
